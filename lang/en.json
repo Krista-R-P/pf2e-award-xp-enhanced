@@ -1,10 +1,11 @@
 {
     "PF2EAXP.Award": {
-      "Title": "Distribute Award",
+      "Title": "Distribute Experience Points",
       "Header":"Select the Encounter difficulty or enter a custom value.",
       "Action": "Award",
       "Reason": "Reason",
       "Message": "{name} has been awarded {award} XP for {description}.",
+      "MessageNoDescription": "{name} has been awarded {award} XP.",
       "NoDestinations": "The Party has no members",
       "NotGMError": "The /award command is only available to GMs.",
       "UnrecognizedWarning": "Unable to parse {commands}. The /award command should in the syntax '/award 10 Earned some EXP'.",
@@ -25,6 +26,7 @@
         "Major":"Accomplishment (Major)"
       },
       "Exp":"exp",
+      "ExpPlaceholder": "Experience Points",
       "Description":"Description",
       "DescriptionPlaceholder": "Custom Description",
       "Destination": "Recipients"

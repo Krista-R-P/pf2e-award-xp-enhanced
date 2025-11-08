@@ -1,6 +1,6 @@
 .destinations {
     display: flex;
-    flex-wrap: wrap; /* Allow items to wrap to the next line */
+    flex-wrap: wrap;
     margin-bottom: 10px;
     justify-content: center;
 }
@@ -9,27 +9,59 @@
     display: flex;
     flex-direction: column;
     align-self: auto;
-    align-items: center; /* Vertical alignment */
-    padding: 0 10px; /* Adjust margin between hero elements */
-    flex-basis: 25%; /* Each hero takes up 25% of the container width, allowing 4 heroes in a row */
-    box-sizing: border-box; /* Include padding and border in the total width */
+    align-items: center;
+    padding: 0 6px;
+    box-sizing: border-box;
     text-align: center;
-    width:60px;
+    width: 50px;
+}
+
+.hero:first-child:nth-last-child(1) {
+    flex-basis: 100%;
+}
+
+.hero:first-child:nth-last-child(2),
+.hero:first-child:nth-last-child(2) ~ .hero {
+    flex-basis: 50%;
+}
+
+.hero:first-child:nth-last-child(3),
+.hero:first-child:nth-last-child(3) ~ .hero {
+    flex-basis: 33.33%;
+}
+
+.hero:first-child:nth-last-child(4),
+.hero:first-child:nth-last-child(4) ~ .hero {
+    flex-basis: 25%;
+}
+
+.hero:first-child:nth-last-child(5),
+.hero:first-child:nth-last-child(5) ~ .hero {
+    flex-basis: 20%;
+}
+
+.hero:first-child:nth-last-child(n+6),
+.hero:first-child:nth-last-child(n+6) ~ .hero {
+    flex-basis: 16.66%;
 }
 
 .hero img {
     border:none;
     height: 50px;
     width: 50px;
+    display: block;
+    margin: 0 auto;
 }
 
-/* Additional styling for better spacing and alignment */
 .hero label {
-    margin-top: 10px; /* Adjust the margin as needed */
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .hero .token {
-    margin-bottom: 5px; /* Adjust the margin as needed */
+    margin-bottom: 5px;
 }
 
 .hero .name { 
@@ -42,11 +74,11 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    margin-bottom: 15px; /* Adjust the margin as needed for spacing between form groups */
+    margin-bottom: 15px;
 }
 
 .pf2eawardxp .form-group label {
-    margin-right: 10px; /* Adjust the margin between label and input as needed */
+    margin-right: 10px;
     text-align: right;
     flex:0;
     width:200px;
@@ -83,7 +115,7 @@
 }
 
 .pf2eawardxp .recipients-block {
-    margin-top: 20px; /* Adjust the margin as needed */
+    margin-top: 20px;
 }
 
 .pf2eawardxp .recipient-list {
@@ -94,5 +126,104 @@
 
 .pf2eawardxp .recipient-list li {
     display: inline;
-    margin-right: 10px; /* Adjust the margin as needed */
+    margin-right: 10px;
+}
+
+.pf2eawardxp .encounter-toggle {
+    margin-bottom: 10px;
+    padding: 0px;
+}
+
+.encounter-toggle label {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    margin: 0;
+    width: auto;
+    justify-content: flex-start;
+    line-height: normal;
+    padding: 0;
+}
+
+#encounter-only {
+    width: auto;
+    flex: none;
+    margin: 0 8px 0 0;
+    font: 14px !important;
+    height: auto !important;
+    line-height: normal !important;
+}
+
+.pf2eawardxp .online-players-toggle {
+    margin-bottom: 10px;
+    padding: 0px;
+}
+
+.online-players-toggle label {
+    display: flex;
+    align-items: center;
+    font-weight: normal;
+    margin: 0;
+    width: auto;
+    justify-content: flex-start;
+    line-height: normal;
+    padding: 0;
+}
+
+#online-players-only {
+    width: auto;
+    flex: none;
+    margin: 0 8px 0 0;
+    font: 14px !important;
+    height: auto !important;
+    line-height: normal !important;
+}
+
+.input-with-suffix {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
+
+.input-with-suffix input {
+    padding-right: 35px;
+}
+
+.input-suffix {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+    pointer-events: none;
+    font-size: 14px;
+}
+
+.form-group-horizontal {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.form-group-horizontal .reason-select {
+    flex: 2;
+    min-width: 200px;
+}
+
+.form-group-horizontal .xp-input {
+    flex: 1;
+    min-width: 170px;
+}
+
+div > b {
+    display: block;
+    margin-bottom: 10px !important;
+}
+
+.form-group.form-group-horizontal {
+    margin-bottom: 10px !important;
+}
+
+.pf2e_awardxp_description.form-group {
+    margin-bottom: 10px !important;
 }

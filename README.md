@@ -4,12 +4,11 @@ Open an XP award dialog after combat prefilled with XP Value of the previous com
 
 Adds journal enrichers to allow reward dialog inside journals!
 
-![pf2eAwardXPwebm](https://github.com/jsavko/pf2e-award-xp/assets/192591/fbd1cfb1-d0a2-4d67-b734-80a99a60156f)
-
-
-![chatoutput](https://github.com/jsavko/pf2e-award-xp/assets/192591/b19d5efd-d5e3-473f-b671-0fac904144d8)
-
-![enricher(3)](https://github.com/jsavko/pf2e-award-xp/assets/192591/f5405fb3-c9af-401a-8753-5e8cdeeb1871)
+![Image1](https://raw.githubusercontent.com/Krista-R-P/pf2e-award-xp/refs/heads/assets/N%C3%A4ytt%C3%B6kuva%202025-11-09%20010728.png)
+![Image2](https://raw.githubusercontent.com/Krista-R-P/pf2e-award-xp/refs/heads/assets/N%C3%A4ytt%C3%B6kuva%202025-11-09%20010847.png)
+![Image3](https://raw.githubusercontent.com/Krista-R-P/pf2e-award-xp/refs/heads/assets/N%C3%A4ytt%C3%B6kuva%202025-11-09%20011015.png)
+![Image4](https://raw.githubusercontent.com/Krista-R-P/pf2e-award-xp/refs/heads/assets/N%C3%A4ytt%C3%B6kuva%202025-11-09%20011142.png)
+![Image5](https://raw.githubusercontent.com/Krista-R-P/pf2e-award-xp/refs/heads/assets/N%C3%A4ytt%C3%B6kuva%202025-11-09%20011426.png)
 
 Enrichers will automatically change text in this format to a clickable link
 

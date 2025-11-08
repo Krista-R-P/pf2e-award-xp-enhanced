@@ -11,6 +11,12 @@ Hooks.on('preDeleteCombat', (combat,html,id) => {
     if (!game.user.isGM) return
     if (!game.settings.get("pf2e-award-xp", "combatPopup")) return
     const pcs = combat.combatants.filter(c => c.actor.type==='character' && c.actor.alliance === 'party' && !c.actor.traits.has('eidolon') && !c.actor.traits.has('minion')).map(c => c.actor)
+    
+    const encounterParticipants = {};
+    pcs.forEach(pc => {
+        encounterParticipants[pc.id] = true;
+    });
+    
     const pwol = game.pf2e.settings.variants.pwol.enabled;
     let calulatedXP = game.pf2e.gm.calculateXP(
         pcs[0].system.details.level.value,
@@ -19,8 +25,12 @@ Hooks.on('preDeleteCombat', (combat,html,id) => {
         combat.combatants.filter(c => c.actor.type === "hazard").map(c => c.actor.system.details.level.value),
         {pwol}
     )
-    const award = new game.pf2e_awardxp.Award(null,{destinations:pcs, description:'Encounter (' + calulatedXP.rating.charAt(0).toUpperCase() +  calulatedXP.rating.slice(1) + ')', xp:calulatedXP.xpPerPlayer});
-    award.render(true);
+    game.pf2e_awardxp.Award.create({
+        destinations: game.actors.party.members.filter(m => m.type === "character" &&  !m.traits.has('eidolon') && !m.traits.has('minion')), 
+        description: 'Encounter (' + calulatedXP.rating.charAt(0).toUpperCase() +  calulatedXP.rating.slice(1) + ')', 
+        xp: calulatedXP.xpPerPlayer,
+        encounterParticipants: encounterParticipants
+    });
 })
 
 
@@ -140,48 +150,92 @@ async function awardAction(event) {
     Award.handleAward(command);
   }
   
-class Award extends FormApplication {
+class Award extends foundry.applications.api.DialogV2 {
 
     static get defaultOptions() {
         return foundry.utils.mergeObject(super.defaultOptions, {
           classes: ["pf2e", "award", "dialog","pf2eawardxp"],
-          template: "modules/pf2e-award-xp/templates/apps/award.hbs",
-          title: "PF2EAXP.Award.Title",
-          width: 400,
-          height: "auto",
-          currency: null,
-          xp: null,
-          type: null,
-          description: null,
-          destinations: [],
+          tag: "dialog",
+          window: {
+            title: "PF2EAXP.Award.Title",
+            icon: "fa-solid fa-trophy",
+            minimizable: false
+          },
+          position: {
+            width: 400,
+            height: "auto"
+          }
         });
       }
 
-      getData(options={}) {
-        const context = super.getData(options);
-        context.xp = this.options.xp ?? 0;
-        context.description = this.options.description ?? null;       
-        context.destinations = this.options.destinations.length > 0 ? this.options.destinations : game.actors.party.members.filter(m => m.type === "character" &&  !m.traits.has('eidolon') && !m.traits.has('minion'));
-        return context;
+      static async create(options = {}) {
+        const xp = options.xp ?? 0;
+        const description = options.description ?? null;
+        const destinations = options.destinations?.length > 0 ? options.destinations : game.actors.party.members.filter(m => m.type === "character" &&  !m.traits.has('eidolon') && !m.traits.has('minion'));
+        const encounterParticipants = options.encounterParticipants ?? null;
+        
+        const content = await foundry.applications.handlebars.renderTemplate("modules/pf2e-award-xp/templates/apps/award.hbs", {
+          xp,
+          description,
+          destinations,
+          encounterParticipants
+        });
+
+        return new Promise((resolve, reject) => {
+          new this({
+            content,
+            window: {
+              title: game.i18n.localize("PF2EAXP.Award.Title"),
+              icon: "fa-solid fa-trophy"
+            },
+            buttons: [
+              {
+                action: "award",
+                icon: "fa-solid fa-trophy",
+                label: game.i18n.localize("PF2EAXP.Award.Action"),
+                callback: (event, button, dialog) => this._onAward(event, button, dialog, resolve)
+              },
+              {
+                action: "cancel",
+                icon: "fas fa-times",
+                label: "Cancel",
+                callback: () => resolve(null)
+              }
+            ],
+            default: "award",
+            close: () => resolve(null)
+          }).render(true);
+        });
       }
 
-    /** @inheritdoc */
-    async _updateObject(event, formData) {
-        const data = foundry.utils.expandObject(formData);
-        this.form.querySelector('button[name="transfer"]').disabled = true;
-
-        if(data['award-type'] != "Custom") {data.description = data['award-type'];}
+      static async _onAward(event, button, dialog, resolve) {
+        const formData = new FormData(dialog.element.querySelector("form"));
+        const data = foundry.utils.expandObject(Object.fromEntries(formData));
+        
+        console.log("PF2E Award XP - Form data:", data);
+        console.log("PF2E Award XP - XP amount:", data.xp, "Type:", typeof data.xp);
+        
+        // Get destinations
         const destinations = []
         for (const actor in data.destination){ 
-            if (data.destination[actor] == true) destinations.push(game.actors.get(actor))
+            if (data.destination[actor]) destinations.push(game.actors.get(actor))
         }
-        this.close();
-        if (game.user.isGM){
-            await this.constructor.awardXP(data.xp, destinations)
-            await this.constructor.displayAwardMessages(data.xp, data.description, destinations);
-        }
+        
+        button.disabled = true;
 
-    }
+        if(data['award-type'] != "Custom") {data.description = data['award-type'];}
+        
+        console.log("PF2E Award XP - Destinations found:", destinations.length);
+        console.log("PF2E Award XP - User is GM:", game.user.isGM);
+        
+        if (game.user.isGM){
+            console.log("PF2E Award XP - Calling awardXP with:", data.xp, destinations);
+            await this.awardXP(data.xp, destinations)
+            await this.displayAwardMessages(data.xp, data.description, destinations);
+        }
+        
+        resolve({data, destinations});
+      }
     
     /**
     * Update the actors with the current EXP value.
@@ -189,12 +243,22 @@ class Award extends FormApplication {
     * @param {array[actors]} destinations  text description to be displayed in chatMessage.
     */
     static async awardXP(amount, destinations){
-        if ( !amount || !destinations.length ) return;
+        console.log("PF2E Award XP - awardXP called with amount:", amount, "destinations:", destinations.length);
+        
+        if ( !amount || !destinations.length ) {
+            console.log("PF2E Award XP - Early return: amount =", amount, "destinations.length =", destinations.length);
+            return;
+        }
+        
         for ( const destination of destinations ) {
           try {
-            console.log(`PFPF2E Award XP - ${destination.name} - ${destination.system.details.xp.value}(starting) +  ${amount} (award) = ${destination.system.details.xp.value + amount} (total)`)
-            await destination.update({'system.details.xp.value': destination.system.details.xp.value + amount})
+            const currentXP = destination.system.details.xp.value;
+            const newXP = currentXP + parseInt(amount);
+            console.log(`PF2E Award XP - ${destination.name} - ${currentXP}(starting) +  ${amount} (award) = ${newXP} (total)`)
+            await destination.update({'system.details.xp.value': newXP})
+            console.log(`PF2E Award XP - Successfully updated ${destination.name}`);
           } catch(err) {
+            console.error(`PF2E Award XP - Error updating ${destination.name}:`, err);
             ui.notifications.warn(destination.name + ": " + err.message);
           }
         }
@@ -207,19 +271,33 @@ class Award extends FormApplication {
     * @param {array[actors]} destinations  text description to be displayed in chatMessage.
     */
     static async displayAwardMessages(amount, description, destinations) {
-        const context = {
-            message: game.i18n.format("PF2EAXP.Award.Message",
-            {name: game.actors.party.name, award: amount, description: description }),
-            destinations:destinations
+        const hasDescription = description && description.trim() !== '';
+        
+        let message;
+        if (hasDescription) {
+            message = game.i18n.format("PF2EAXP.Award.Message", {
+                name: game.actors.party.name, 
+                award: amount, 
+                description: description 
+            });
+        } else {
+            message = game.i18n.format("PF2EAXP.Award.MessageNoDescription", {
+                name: game.actors.party.name, 
+                award: amount
+            });
         }
-        const content = await renderTemplate("modules/pf2e-award-xp/templates/chat/party.hbs", context);
+        
+        const context = {
+            message: message,
+            destinations: destinations
+        }
+        const content = await foundry.applications.handlebars.renderTemplate("modules/pf2e-award-xp/templates/chat/party.hbs", context);
     
         const messageData = {
           type: CONST.CHAT_MESSAGE_STYLES["OTHER"],
           content: content,
           speaker: ChatMessage.getSpeaker({actor: this.parent}),
           rolls: null,
-    
         }
         return ChatMessage.create(messageData, {});
     }
@@ -229,36 +307,114 @@ class Award extends FormApplication {
   /* -------------------------------------------- */
 
   /** @inheritDoc */
-  activateListeners(html) {
-    super.activateListeners(html);
-    this._validateForm();
+  _onRender(context, options) {
+    super._onRender(context, options);
     
-    html.find('[name=award-type]').on( "change", function() {
-        html.find('[name=xp]')[0].value = this.selectedOptions[0].getAttribute("data-xp");  
-        const customBox = html.find (".pf2e_awardxp_description");
-        if (this.selectedOptions[0].value == "Custom"){
-           customBox[0].style.visibility = 'visible';
-        } else { 
-           customBox[0].style.visibility = 'hidden';
+    const html = this.element;
+    
+    const validateForm = () => {
+        const awardButton = html.querySelector('[data-action="award"]');
+        if (!awardButton) return;
+
+        let isValid = true;
+
+        const xpInput = html.querySelector('[name=xp]');
+        const xpAmount = parseInt(xpInput?.value || 0);
+        if (!xpAmount || xpAmount <= 0) {
+            isValid = false;
         }
-      } );
 
-      
+        const reasonSelect = html.querySelector('[name=award-type]');
+        const selectedReason = reasonSelect?.value;
+        if (!selectedReason || selectedReason.trim() === '' || selectedReason === 'Choose Reason') {
+            isValid = false;
+        }
 
-  }
+        const checkboxes = html.querySelectorAll('[name^="destination."]');
+        const hasSelection = Array.from(checkboxes).some(cb => cb.checked);
+        if (!hasSelection) {
+            isValid = false;
+        }
 
-  /* -------------------------------------------- */
+        awardButton.disabled = !isValid;
+    };
 
-  /** @inheritDoc */
-  _onChangeInput(event) {
-    super._onChangeInput(event);
-    this._validateForm();
-  }
+    validateForm();
+    
+    html.querySelector('[name=award-type]')?.addEventListener("change", function() {
+        const xpInput = html.querySelector('[name=xp]');
+        if (xpInput) xpInput.value = this.selectedOptions[0].getAttribute("data-xp");
+        
+        const customBox = html.querySelector(".pf2e_awardxp_description input");
+        if (customBox) {
+          if (this.selectedOptions[0].value == "Custom"){
+             customBox.disabled = false;
+          } else { 
+             customBox.disabled = true;
+             customBox.value = this.selectedOptions[0].value;
+          }
+        }
+        
+        validateForm();
+    });
 
-  _validateForm() {
-    const data = foundry.utils.expandObject(this._getSubmitData());
-    let valid = true;
-    this.form.querySelector('button[name="transfer"]').disabled = !valid;
+    html.querySelector('[name=xp]')?.addEventListener("input", validateForm);
+
+    html.querySelector('[name=description]')?.addEventListener("input", validateForm);
+
+    html.querySelectorAll('[name^="destination."]').forEach(checkbox => {
+        checkbox.addEventListener('change', validateForm);
+    });
+
+    const encounterToggle = html.querySelector('#encounter-only');
+    if (encounterToggle) {
+        encounterToggle.addEventListener('change', function() {
+            const onlineToggle = html.querySelector('#online-players-only');
+            if (this.checked && onlineToggle) {
+                onlineToggle.checked = false;
+            }
+            
+            const checkboxes = html.querySelectorAll('[name^="destination."]');
+            checkboxes.forEach(checkbox => {
+                const isParticipant = checkbox.getAttribute('data-encounter-participant') === 'true';
+                if (this.checked) {
+                    checkbox.checked = isParticipant;
+                } else {
+                    checkbox.checked = true;
+                }
+            });
+            
+            validateForm();
+        });
+    }
+
+    const onlinePlayersToggle = html.querySelector('#online-players-only');
+    if (onlinePlayersToggle) {
+        onlinePlayersToggle.addEventListener('change', function() {
+            const encounterToggle = html.querySelector('#encounter-only');
+            if (this.checked && encounterToggle) {
+                encounterToggle.checked = false;
+            }
+            
+            const checkboxes = html.querySelectorAll('[name^="destination."]');
+            checkboxes.forEach(checkbox => {
+                const actorId = checkbox.name.split('.')[1];
+                const actor = game.actors.get(actorId);
+                
+                if (this.checked) {
+                    const isOwnerOnline = actor?.ownership && Object.keys(actor.ownership).some(userId => {
+                        if (userId === 'default') return false;
+                        const user = game.users.get(userId);
+                        return user && user.active && !user.isGM && actor.ownership[userId] >= 3;
+                    });
+                    checkbox.checked = isOwnerOnline;
+                } else {
+                    checkbox.checked = true;
+                }
+            });
+            validateForm();
+        });
+    }
   }
 
 
@@ -308,8 +464,7 @@ class Award extends FormApplication {
 
       try {
         const { xp, description } = this.parseAwardCommand(message);
-        const award = new game.pf2e_awardxp.Award(null,{xp:parseInt(xp), description:description});
-        award.render(true);
+        game.pf2e_awardxp.Award.create({xp:parseInt(xp), description:description});
 
       } catch(err) {
         ui.notifications.warn(err.message);
@@ -338,8 +493,7 @@ class Award extends FormApplication {
       
     let xp = options.award ?? null;
     let description = options.description ?? null;
-    const award = new game.pf2e_awardxp.Award(null,{xp:xp, description:description});
-    award.render(true);
+    return game.pf2e_awardxp.Award.create({xp:xp, description:description});
 
   }
 
@@ -376,7 +530,6 @@ class Award extends FormApplication {
                     };
                 });
                 ChatMessage.implementation.createDocuments(chatData);
-                //Set flag to not send message again
                 game.settings.set("pf2e-award-xp", "welcomeMessageShown", true)
             }
         }
