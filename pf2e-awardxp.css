@@ -227,3 +227,8 @@ div > b {
 .pf2e_awardxp_description.form-group {
     margin-bottom: 10px !important;
 }
+
+#award-xp-floating-button {
+    width: 32px;
+    height: 32px;
+}

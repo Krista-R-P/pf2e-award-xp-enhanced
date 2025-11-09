@@ -6,7 +6,6 @@
  * Open dialog at when the preDeleteCombat hook is fired.
  */
 
-
 Hooks.on('preDeleteCombat', (combat,html,id) => {
     if (!game.user.isGM) return
     if (!game.settings.get("pf2e-award-xp", "combatPopup")) return
@@ -48,7 +47,31 @@ Hooks.once("init", async () => {
 
 Hooks.once("ready", async () => {
     game.pf2e_awardxp.Award._welcomeMessage();
+    
+    // Add floating Award XP button for GMs
+    if (game.user.isGM) {
+        addFloatingAwardButton();
+    }
 });
+
+function addFloatingAwardButton() {
+    const floatingButton = $(`
+        <button class="ui-control fa-solid" id="award-xp-floating-button" type="button" title="Award Experience Points">
+            <i class="fa-solid fa-trophy"></i>
+        </button>
+    `);
+
+    floatingButton.on("click", () => {
+        game.pf2e_awardxp.Award.create({});
+    });
+
+    const targetContainer = document.querySelector('body > div#interface > section#ui-middle > footer#ui-bottom> aside#hotbar');
+    if (targetContainer) {
+        targetContainer.appendChild(floatingButton[0]);
+    } else {
+        console.error("PF2E Award XP - Could not find target container for floating Award XP button.");
+    }
+}
 
 
 Hooks.on("chatMessage", (app, message, data) => game.pf2e_awardxp.Award.chatMessage(message));
