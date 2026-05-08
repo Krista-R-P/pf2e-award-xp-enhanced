@@ -317,7 +317,6 @@ class Award extends foundry.applications.api.DialogV2 {
         const content = await foundry.applications.handlebars.renderTemplate("modules/pf2e-award-xp/templates/chat/party.hbs", context);
     
         const messageData = {
-          type: CONST.CHAT_MESSAGE_STYLES["OTHER"],
           content: content,
           speaker: ChatMessage.getSpeaker({actor: this.parent}),
           rolls: null,
